@@ -1,0 +1,54 @@
+{
+  "ambient": {
+    "intensity": 0.25,
+    "color": "#ffeedd"
+  },
+  "windowLight": {
+    "intensity": 2,
+    "color": "#e6f0ff",
+    "position": {
+      "x": 1.5,
+      "y": -1.5,
+      "z": 13
+    },
+    "shadow": {
+      "bias": 0.005,
+      "mapSize": 512,
+      "cameraNear": 0.1,
+      "cameraFar": 50,
+      "cameraTop": 25,
+      "cameraRight": 15,
+      "cameraBottom": -25,
+      "cameraLeft": -15
+    }
+  },
+  "lampLight": {
+    "intensity": 4.8,
+    "color": "#ff9900",
+    "distance": 30,
+    "decay": 2,
+    "position": {
+      "x": 1,
+      "y": 2,
+      "z": 4.5
+    }
+  },
+  "ceilingLight": {
+    "intensity": 1.1,
+    "color": "#fff5e6",
+    "position": {
+      "x": 7,
+      "y": 8,
+      "z": 7
+    }
+  },
+  "rimLight": {
+    "intensity": 2.2,
+    "color": "#4a7eff",
+    "position": {
+      "x": 2,
+      "y": -5,
+      "z": 4
+    }
+  }
+}
