@@ -73,11 +73,11 @@ export async function deleteImage(imageId) {
 
 // ==================== Text-to-Speech ====================
 
-export async function generateSpeech(text, voice = 'male') {
+export async function generateSpeech(text, voice = 'male', provider = 'groq') {
     const response = await fetch(`${API_BASE}/tts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice }),
+        body: JSON.stringify({ text, voice, provider }),
     });
     if (!response.ok) throw new Error('Failed to generate speech');
 

@@ -1,39 +1,38 @@
-
 import { useAnimations, useFBX, useGLTF } from "@react-three/drei";
 import { useFrame, useGraph } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { MeshPhysicalMaterial } from "three";
-import { lerp, randInt } from "three/src/math/MathUtils.js";
+import { lerp } from "three/src/math/MathUtils.js";
 import { SkeletonUtils } from "three-stdlib";
 import useChatbot from "../hooks/useChatbot";
 
 // Rhubarb mouth shapes (A-H, X) mapped to Ready Player Me visemes
 const corresponding = {
-  A: "viseme_PP",   // Closed mouth for M, B, P
-  B: "viseme_kk",   // Slightly open mouth
-  C: "viseme_I",    // Open mouth (EE, IH)
-  D: "viseme_aa",   // Wide open mouth (AH)
-  E: "viseme_O",    // Rounded lips (OH)
-  F: "viseme_U",    // Puckered lips (OO, EW)
-  G: "viseme_FF",   // Upper teeth on lower lip (F, V)
-  H: "viseme_TH",   // Tongue between teeth (L, TH)
-  X: "viseme_sil",  // Silence/rest position
-}
+  A: "viseme_PP",
+  B: "viseme_kk",
+  C: "viseme_I",
+  D: "viseme_aa",
+  E: "viseme_O",
+  F: "viseme_U",
+  G: "viseme_FF",
+  H: "viseme_TH",
+  X: "viseme_sil",
+};
 
-export const Detective = ({ ...props }) => {
-  const { scene } = useGLTF("/models/Detective.glb");
+export const Male = ({ ...props }) => {
+  const { scene } = useGLTF("/models/Male.glb");
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { nodes, materials } = useGraph(clone);
 
-  const { animations: idleAnimation } = useFBX("animations/Idle.fbx");
-  const { animations: offensiveIdleAnimation } = useFBX("animations/Offensive Idle.fbx");
-  const { animations: armStretchingAnimation } = useFBX("animations/Arm Stretching.fbx");
-  const { animations: neckStretchingAnimation } = useFBX("animations/Neck Stretching.fbx");
-  const { animations: talkingAnimation } = useFBX("animations/Talking.fbx");
-  const { animations: talkingAnimation2 } = useFBX("animations/Talking2.fbx");
+  // Load animations from male folder
+  const { animations: idleAnimation } = useFBX("/animations/male/Idle.fbx");
+  const { animations: offensiveIdleAnimation } = useFBX("/animations/male/Offensive Idle.fbx");
+  const { animations: armStretchingAnimation } = useFBX("/animations/male/Arm Stretching.fbx");
+  const { animations: neckStretchingAnimation } = useFBX("/animations/male/Neck Stretching.fbx");
+  const { animations: talkingAnimation } = useFBX("/animations/male/Talking.fbx");
+  const { animations: talkingAnimation2 } = useFBX("/animations/male/Talking2.fbx");
 
-  // Memoize animations to prevent re-naming on every render
   const animations = useMemo(() => {
     idleAnimation[0].name = "Idle";
     offensiveIdleAnimation[0].name = "Offensive Idle";
@@ -41,21 +40,25 @@ export const Detective = ({ ...props }) => {
     neckStretchingAnimation[0].name = "Neck Stretching";
     talkingAnimation[0].name = "Talking";
     talkingAnimation2[0].name = "Talking2";
-    return [idleAnimation[0], offensiveIdleAnimation[0], armStretchingAnimation[0], neckStretchingAnimation[0], talkingAnimation[0], talkingAnimation2[0]];
+    return [
+      idleAnimation[0],
+      offensiveIdleAnimation[0],
+      armStretchingAnimation[0],
+      neckStretchingAnimation[0],
+      talkingAnimation[0],
+      talkingAnimation2[0],
+    ];
   }, [idleAnimation, offensiveIdleAnimation, armStretchingAnimation, neckStretchingAnimation, talkingAnimation, talkingAnimation2]);
 
   const group = useRef();
   const { actions, mixer } = useAnimations(animations, group);
   const previousAction = useRef();
 
-  const currentAudioUrl = useChatbot(state => state.currentAudio);
-  const currentLipsync = useChatbot(state => state.currentLipsync);
-  const setStatus = useChatbot(state => state.setStatus);
-  const status = useChatbot(state => state.status);
-  const isSpeaking = useChatbot(state => state.isSpeaking);
+  const currentLipsync = useChatbot((state) => state.currentLipsync);
+  const status = useChatbot((state) => state.status);
+  const isSpeaking = useChatbot((state) => state.isSpeaking);
 
-  const audio = useMemo(() => new Audio(), []);
-
+  // Apply enhanced materials
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -74,54 +77,28 @@ export const Detective = ({ ...props }) => {
     });
   }, [scene]);
 
-  // Audio and Status Management
-  useEffect(() => {
-    if (currentAudioUrl) {
-      audio.src = currentAudioUrl;
-      audio.onplay = () => setStatus("speaking");
-      audio.onended = () => setStatus("idle");
-
-      audio.play().catch(e => {
-        console.error("Audio play failed", e);
-        setStatus("idle");
-      });
-
-      return () => {
-        audio.pause();
-        audio.onplay = null;
-        audio.onended = null;
-      };
-    } else {
-      audio.pause();
-      setStatus("idle");
-    }
-  }, [currentAudioUrl, audio, setStatus]);
-
-  // Animation State Management
-  // Animation groups for random selection
+  // Animation groups
   const talkingAnimations = useMemo(() => ["Talking", "Talking2"], []);
-  const idleAnimations = useMemo(() => [
-    { name: "Idle", weight: 70 },
-    { name: "Offensive Idle", weight: 10 },
-    { name: "Arm Stretching", weight: 15 },
-    { name: "Neck Stretching", weight: 15 },
-  ], []);
+  const idleAnimations = useMemo(
+    () => [
+      { name: "Idle", weight: 70 },
+      { name: "Offensive Idle", weight: 10 },
+      { name: "Arm Stretching", weight: 15 },
+      { name: "Neck Stretching", weight: 15 },
+    ],
+    []
+  );
 
-  const getRandomAnimation = (animations) => {
-    return animations[Math.floor(Math.random() * animations.length)];
-  };
+  const getRandomAnimation = (anims) => anims[Math.floor(Math.random() * anims.length)];
 
-  const getWeightedRandomAnimation = (weightedAnimations) => {
-    const totalWeight = weightedAnimations.reduce((sum, anim) => sum + anim.weight, 0);
+  const getWeightedRandomAnimation = (weightedAnims) => {
+    const totalWeight = weightedAnims.reduce((sum, anim) => sum + anim.weight, 0);
     let random = Math.random() * totalWeight;
-
-    for (const anim of weightedAnimations) {
+    for (const anim of weightedAnims) {
       random -= anim.weight;
-      if (random <= 0) {
-        return anim.name;
-      }
+      if (random <= 0) return anim.name;
     }
-    return weightedAnimations[0].name;
+    return weightedAnims[0].name;
   };
 
   const [animation, setAnimation] = useState({ name: "Idle", runId: 0 });
@@ -137,62 +114,45 @@ export const Detective = ({ ...props }) => {
       nextAnim = "Idle";
     }
 
-    // Always update to force re-trigger even if same animation name
     if (nextAnim) {
-      setAnimation(prev => ({
-        name: nextAnim,
-        runId: prev.runId + 1
-      }));
+      setAnimation((prev) => ({ name: nextAnim, runId: prev.runId + 1 }));
     }
   }, [status, isSpeaking, talkingAnimations, idleAnimations]);
 
-  // Handle animation playback and sequencing
+  // Handle animation playback
   useEffect(() => {
     const action = actions[animation.name];
     if (!action) return;
 
     const onFinished = () => {
-      // Use logic to pick next animation but wrap in setAnimation with new runId
       let nextAnimName;
       if (status === "speaking" || isSpeaking) {
         nextAnimName = getRandomAnimation(talkingAnimations);
       } else if (status === "idle") {
         nextAnimName = getWeightedRandomAnimation(idleAnimations);
       }
-
       if (nextAnimName) {
-        setAnimation(prev => ({
-          name: nextAnimName,
-          runId: prev.runId + 1
-        }));
+        setAnimation((prev) => ({ name: nextAnimName, runId: prev.runId + 1 }));
       }
     };
 
-    mixer.addEventListener('finished', onFinished);
+    mixer.addEventListener("finished", onFinished);
 
     if (previousAction.current !== action) {
-      if (previousAction.current) {
-        previousAction.current.fadeOut(0.5);
-      }
+      if (previousAction.current) previousAction.current.fadeOut(0.5);
       action.reset().fadeIn(0.5).play();
-    } else {
-      // Same animation repeating: only reset if it's finished and not looping
-      // For idle states, we generally want them to continue smoothly rather than snap reset
-      if (!action.isRunning()) {
-        action.reset().play();
-      }
+    } else if (!action.isRunning()) {
+      action.reset().play();
     }
 
     action.setLoop(THREE.LoopOnce);
     action.clampWhenFinished = true;
     previousAction.current = action;
 
-    return () => {
-      mixer.removeEventListener('finished', onFinished);
-    };
+    return () => mixer.removeEventListener("finished", onFinished);
   }, [animation, actions, mixer, status, talkingAnimations, idleAnimations]);
 
-  // Cache skinned meshes for morph target updates
+  // Cache skinned meshes for morph targets
   const skinnedMeshes = useMemo(() => {
     const meshes = [];
     clone.traverse((child) => {
@@ -203,48 +163,26 @@ export const Detective = ({ ...props }) => {
     return meshes;
   }, [clone]);
 
-  // Frame Loop: Lipsync
+  // Lipsync frame loop (simulated for TTS)
   useFrame(() => {
-    // Helper to lerp morph target on cached meshes
     const lerpMorphTarget = (target, value, speed = 0.1) => {
       skinnedMeshes.forEach((child) => {
         const index = child.morphTargetDictionary[target];
-        if (index === undefined || child.morphTargetInfluences[index] === undefined) {
-          return;
+        if (index !== undefined && child.morphTargetInfluences[index] !== undefined) {
+          child.morphTargetInfluences[index] = lerp(child.morphTargetInfluences[index], value, speed);
         }
-        child.morphTargetInfluences[index] = lerp(
-          child.morphTargetInfluences[index],
-          value,
-          speed
-        );
       });
     };
 
-    // Lipsync
-    const currentAudioTime = audio.currentTime;
-
     let activeViseme = "viseme_sil";
-    if (status === "speaking" || isSpeaking) {
-      if (currentLipsync && currentLipsync.mouthCues) {
-        for (let i = 0; i < currentLipsync.mouthCues.length; i++) {
-          const mouthCue = currentLipsync.mouthCues[i];
-          if (currentAudioTime >= mouthCue.start && currentAudioTime <= mouthCue.end) {
-            activeViseme = corresponding[mouthCue.value];
-            break;
-          }
-        }
-      } else {
-        // Simulate talking for TTS
-        const visemes = ["A", "B", "C", "D", "E", "F", "G", "H"];
-        activeViseme = corresponding[visemes[Math.floor(Date.now() / 150) % visemes.length]];
-      }
+
+    if (isSpeaking) {
+      // Simulate talking - cycle through visemes
+      const visemes = ["A", "B", "C", "D", "E", "F", "G", "H"];
+      activeViseme = corresponding[visemes[Math.floor(Date.now() / 150) % visemes.length]];
     }
 
-    // Apply visemes
     Object.values(corresponding).forEach((viseme) => {
-      // If activeViseme is silence, we want to zero out everything else, 
-      // providing "viseme_sil" itself usually maps to a neutral state or specific silence shape.
-      // If the model has a specific shape for silence, we lerp it to 1.
       lerpMorphTarget(viseme, viseme === activeViseme ? 1 : 0, 0.2);
     });
   });
@@ -252,8 +190,8 @@ export const Detective = ({ ...props }) => {
   return (
     <group {...props} ref={group} dispose={null}>
       <primitive object={nodes.Hips} />
+      <skinnedMesh geometry={nodes.Wolf3D_Hair.geometry} material={materials.Wolf3D_Hair} skeleton={nodes.Wolf3D_Hair.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Outfit_Bottom.geometry} material={materials.Wolf3D_Outfit_Bottom} skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Outfit_Footwear.geometry} material={materials.Wolf3D_Outfit_Footwear} skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton} />
@@ -266,4 +204,10 @@ export const Detective = ({ ...props }) => {
   );
 };
 
-useGLTF.preload("/models/Detective.glb");
+useGLTF.preload("/models/Male.glb");
+useFBX.preload("/animations/male/Idle.fbx");
+useFBX.preload("/animations/male/Offensive Idle.fbx");
+useFBX.preload("/animations/male/Arm Stretching.fbx");
+useFBX.preload("/animations/male/Neck Stretching.fbx");
+useFBX.preload("/animations/male/Talking.fbx");
+useFBX.preload("/animations/male/Talking2.fbx");

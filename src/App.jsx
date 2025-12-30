@@ -22,6 +22,7 @@ function App() {
       initializeCaseFromUrl(caseId);
     } else {
       // On root path, clear any active case and messages
+      useCases.setState({ activeCase: null });
       setMessages([]);
     }
   }, [caseId, initializeCaseFromUrl, setMessages]);

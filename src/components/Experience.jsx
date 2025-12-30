@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Gltf, Environment, OrbitControls } from "@react-three/drei";
-import { MaleAvatar, FemaleAvatar } from "./GenericAvatar";
+import { Male as MaleAvatar } from "./Male";
+import { Female as FemaleAvatar } from "./Female";
 import { CameraManager } from "./CameraManager";
 import { degToRad } from "three/src/math/MathUtils.js";
 import { useControls, folder, button } from "leva";
@@ -155,11 +157,13 @@ export const Experience = () => {
       <OrbitControls />
 
       {/* Render avatar based on gender selection */}
-      {currentAvatar === "male" ? (
-        <MaleAvatar position={[0, -2, 5]} scale={2} />
-      ) : (
-        <FemaleAvatar position={[0, -2, 5]} scale={2} />
-      )}
+      <Suspense fallback={null}>
+        {currentAvatar === "male" ? (
+          <MaleAvatar position={[0, -2, 5]} scale={2} />
+        ) : (
+          <FemaleAvatar position={[0, -2, 5]} scale={2} />
+        )}
+      </Suspense>
 
       <Lights />
 
@@ -179,7 +183,7 @@ export const Experience = () => {
         flipSided
         // scale={0.025}
         scale={65}
-        src="models/Office.glb"
+        src="/models/Office.glb"
       />
     </>
   );

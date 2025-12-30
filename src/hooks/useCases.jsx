@@ -208,16 +208,26 @@ const useCases = create(
                     console.error("Failed to delete case from server:", error);
                 }
 
-                set((state) => {
-                    const newCases = state.cases.filter((c) => c.id !== id);
-                    const newActiveCase =
-                        state.activeCase === id
-                            ? newCases.length > 0
-                                ? newCases[0].id
-                                : null
-                            : state.activeCase;
-                    return { cases: newCases, activeCase: newActiveCase };
-                });
+                const { activeCase, cases } = get();
+                const newCases = cases.filter((c) => c.id !== id);
+                let newActiveCase = activeCase;
+
+                // If deleting the active case, switch to another one or clear
+                if (activeCase === id) {
+                    newActiveCase = newCases.length > 0 ? newCases[0].id : null;
+
+                    // Sync messages for the new active case (or clear if none)
+                    import("./useChatbot").then((mod) => {
+                        if (newActiveCase) {
+                            const newCaseData = newCases.find(c => c.id === newActiveCase);
+                            mod.default.getState().setMessages(newCaseData?.messages || []);
+                        } else {
+                            mod.default.getState().setMessages([]);
+                        }
+                    });
+                }
+
+                set({ cases: newCases, activeCase: newActiveCase });
             },
 
             renameCase: async (id, name) => {

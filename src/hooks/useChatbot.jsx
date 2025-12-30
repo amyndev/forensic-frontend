@@ -13,7 +13,22 @@ const useChatbot = create((set, get) => ({
   currentAnimation: "Idle",
   animationRunId: 0,
 
-  setAvatar: (avatar) => set({ currentAvatar: avatar }),
+  setAvatar: (avatar) => {
+    const { abortController } = get();
+    // Stop any ongoing streaming
+    if (abortController?.abort) {
+      abortController.abort();
+    }
+    set({
+      currentAvatar: avatar,
+      loading: false,
+      status: "idle",
+      streamingText: "",
+      currentAudio: null,
+      currentLipsync: null,
+      abortController: null,
+    });
+  },
   getVoiceGender: () => get().currentAvatar, // Returns 'male' or 'female' for TTS
   setAnimation: (name) => set((state) => ({
     currentAnimation: name,
@@ -139,7 +154,7 @@ const useChatbot = create((set, get) => ({
           handleChatEvent(set, get),
           handleError(set),
           () => { },
-          true // use_groq (OpenAI) for both modes
+          !isPremiumMode // use_groq: true for basic (Groq), false for premium (OpenAI/GPT-4o)
         );
       }
 

@@ -29,7 +29,7 @@ export const UI = () => {
       <div className="fixed inset-0 z-10 pointer-events-none">
         <button
           onClick={() => setCameraZoomed(false)}
-          className="pointer-events-auto absolute top-4 right-4 bg-slate-900/80 text-white px-4 py-2 hover:bg-slate-800 transition-colors border border-slate-700 backdrop-blur-sm"
+          className="pointer-events-auto absolute top-4 right-4 bg-slate-900/80 text-white px-4 py-2 hover:bg-slate-800 transition-colors border border-slate-700"
         >
           Back to Overview
         </button>
@@ -58,26 +58,10 @@ export const UI = () => {
 
   return (
     <main className="fixed inset-0 z-10 flex flex-col pointer-events-none">
+      {/* Bottom Gradient for better contrast */}
+      <div className="absolute bottom-0 left-0 w-full h-[60vh] bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent -z-10 pointer-events-none" />
+
       <SpeechManager />
-
-      {/* Mode Toggle */}
-      <div className="absolute top-4 right-4 z-20 pointer-events-auto flex items-center gap-3 bg-slate-900/80 p-2 rounded-xl border border-slate-700 backdrop-blur-sm">
-        <span className={`text-xs font-mono ${!isPremiumMode ? "text-blue-400 font-bold" : "text-slate-400"}`}>BASIC</span>
-
-        <button
-          onClick={togglePremiumMode}
-          className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${isPremiumMode ? "bg-purple-600" : "bg-slate-600"}`}
-        >
-          <motion.div
-            layout
-            className="w-4 h-4 bg-white rounded-full shadow-md"
-            animate={{ x: isPremiumMode ? 24 : 0 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          />
-        </button>
-
-        <span className={`text-xs font-mono ${isPremiumMode ? "text-purple-400 font-bold" : "text-slate-400"}`}>PREMIUM</span>
-      </div>
 
       {/* Avatar Selector */}
       <AvatarSelector />
@@ -91,12 +75,12 @@ export const UI = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md overflow-hidden flex flex-col max-h-[400px]"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md flex flex-col max-h-[500px]"
           >
             {/* Messages Area */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-4 space-y-4 [mask-image:linear-gradient(to_bottom,transparent,black_20%)]"
+              className="flex-1 overflow-y-auto p-4 space-y-4 [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
             >
               {messages.map((msg, idx) => (
                 <motion.div
@@ -107,8 +91,8 @@ export const UI = () => {
                 >
                   <div
                     className={`max-w-[85%] px-4 py-3 text-sm font-mono ${msg.sender === "user"
-                      ? "bg-blue-600/80 rounded-2xl rounded-br-none text-blue-100 border border-blue-500/30"
-                      : "bg-slate-800/80 rounded-2xl rounded-bl-none text-slate-200 border border-slate-700"
+                      ? "bg-blue-700 rounded-2xl rounded-br-none text-blue-100 border border-blue-500/30"
+                      : "bg-slate-800 rounded-2xl rounded-bl-none text-slate-200 border border-slate-700"
                       }`}
                   >
                     {msg.images && msg.images.length > 0 && (

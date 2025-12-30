@@ -11,11 +11,20 @@ export const SpeechManager = () => {
     const status = useChatbot((state) => state.status);
     const setIsSpeaking = useChatbot((state) => state.setIsSpeaking);
     const currentAvatar = useChatbot((state) => state.currentAvatar); // 'male' or 'female'
+    const isPremiumMode = useChatbot((state) => state.isPremiumMode);
 
     const lastLenRef = useRef(0);
     const audioQueueRef = useRef([]);
     const isPlayingRef = useRef(false);
     const bufferRef = useRef("");
+    const currentAvatarRef = useRef(currentAvatar); // Track latest avatar for async calls
+    const isPremiumModeRef = useRef(isPremiumMode);
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        currentAvatarRef.current = currentAvatar;
+        isPremiumModeRef.current = isPremiumMode;
+    }, [currentAvatar, isPremiumMode]);
 
     // Smaller chunks for faster first audio
     const MIN_CHUNK_SIZE = 15;
@@ -84,8 +93,10 @@ export const SpeechManager = () => {
     };
 
     const fetchAudio = async (text) => {
-        // Pass gender for voice selection
-        const reader = await api.generateSpeech(text, currentAvatar);
+        // Use ref to get current avatar value (avoids stale closure)
+        const voice = currentAvatarRef.current;
+        const provider = isPremiumModeRef.current ? "elevenlabs" : "groq";
+        const reader = await api.generateSpeech(text, voice, provider);
         const chunks = [];
         while (true) {
             const { done, value } = await reader.read();
@@ -159,6 +170,19 @@ export const SpeechManager = () => {
             setIsSpeaking(false);
         }
     }, [status, setIsSpeaking]);
+
+    // Stop audio and clear queue when avatar changes
+    useEffect(() => {
+        // Clear audio queue
+        audioQueueRef.current.forEach(item => {
+            if (item.audio) URL.revokeObjectURL(item.audio);
+        });
+        audioQueueRef.current = [];
+        bufferRef.current = "";
+        lastLenRef.current = 0;
+        isPlayingRef.current = false;
+        setIsSpeaking(false);
+    }, [currentAvatar, setIsSpeaking]);
 
     return null;
 };
