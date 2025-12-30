@@ -59,7 +59,7 @@ export const UI = () => {
   return (
     <main className="fixed inset-0 z-10 flex flex-col pointer-events-none">
       {/* Bottom Gradient for better contrast */}
-      <div className="absolute bottom-0 left-0 w-full h-[60vh] bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent -z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-[60vh] bg-gradient-to-t from-slate-600 to-transparent -z-10 pointer-events-none" />
 
       <SpeechManager />
 

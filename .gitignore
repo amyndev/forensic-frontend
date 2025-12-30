@@ -27,3 +27,8 @@ Rhubarb-Lip-Sync-1.14.0-Linux
 venv
 report
 .env
+
+# YOLO model files (only store in backend/services/weights/)
+*.pt
+*.weights
+!backend/services/weights/*.pt
