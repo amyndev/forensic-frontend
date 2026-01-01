@@ -1,6 +1,24 @@
 import { create } from "zustand";
 import * as api from "../lib/api";
 
+const ERROR_MESSAGES = [
+  {
+    text: "Hi there! I’m looking forward to chatting, but I need a little setup first. Please clone this project and add your API keys to get me running!",
+    male: "/audios/male/male-no-backend-1.wav",
+    female: "/audios/female/female-no-backend-1.wav",
+  },
+  {
+    text: "Hello! I'm just a shell right now. If you want to see how I really work, grab the code from the repo and plug in your keys.",
+    male: "/audios/male/male-no-backend-2.wav",
+    female: "/audios/female/female-no-backend-2.wav",
+  },
+  {
+    text: "Oops! It looks like I'm missing my brain. Please clone the repository and set up your environment variables to wake me up.",
+    male: "/audios/male/male-no-backend-3.wav",
+    female: "/audios/female/female-no-backend-3.wav",
+  },
+];
+
 const useChatbot = create((set, get) => ({
   messages: [],
   loading: false,
@@ -8,10 +26,13 @@ const useChatbot = create((set, get) => ({
   status: "idle", // idle, loading, detection, ocr, nlp, streaming, complete, error
   progress: null, // { step, image, totalImages }
   streamingText: "",
-  isPremiumMode: false,
   currentAvatar: "male", // 'male' or 'female'
   currentAnimation: "Idle",
   animationRunId: 0,
+
+  // Model selection
+  currentModel: "local", // "local" | "gpt4o"
+  setModel: (model) => set({ currentModel: model }),
 
   setAvatar: (avatar) => {
     const { abortController } = get();
@@ -27,18 +48,15 @@ const useChatbot = create((set, get) => ({
       currentAudio: null,
       currentLipsync: null,
       abortController: null,
+      currentModel: "local", // Optional: reset or keep
     });
   },
+
   getVoiceGender: () => get().currentAvatar, // Returns 'male' or 'female' for TTS
+
   setAnimation: (name) => set((state) => ({
     currentAnimation: name,
     animationRunId: state.animationRunId + 1
-  })),
-
-  togglePremiumMode: () => set((state) => ({
-    isPremiumMode: !state.isPremiumMode
-    // NOTE: We no longer clear messages when toggling modes
-    // This preserves conversation history across Basic/Premium switches
   })),
 
   setCameraZoomed: (zoomed) => set({ cameraZoomed: zoomed }),
@@ -59,17 +77,21 @@ const useChatbot = create((set, get) => ({
 
   /**
    * Send a message with optional files
-   * @param {string} message - The user's message
-   * @param {File[]} files - Files to upload
-   * @param {string} conversationId - The conversation ID
    */
   sendMessage: async (message, files = [], conversationId) => {
     let activeId = conversationId;
-    const isPremiumMode = get().isPremiumMode;
 
     if (!activeId) {
       console.error("No conversation ID provided");
       return;
+    }
+
+    // Stop any existing audio/error messages
+    const { currentAudio } = get();
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      set({ currentAudio: null, isSpeaking: false });
     }
 
     set({ loading: true, status: "loading", streamingText: "", progress: null });
@@ -133,28 +155,24 @@ const useChatbot = create((set, get) => ({
 
       // Choose endpoint based on whether we have images
       if (uploadedImages.length > 0) {
-        // Use analyze endpoint for image analysis
-        // Basic mode: YOLO + OCR + OpenAI LLM (useBasicPipeline=true)
-        // Premium mode: GPT-4o Vision (useBasicPipeline=false)
+        // Use analyze endpoint for image analysis (YOLO + OCR + Groq/GPT4o)
         abort = api.analyzeStream(
           activeId,
           message || null,
           handleAnalyzeEvent(set, get),
-          handleError(set),
+          handleError(set, get),
           () => { },
-          !isPremiumMode // useBasicPipeline: true for basic, false for premium
+          get().currentModel // Pass selected model
         );
       } else {
         // Use chat endpoint for text-only conversation
-        // Both modes use OpenAI for text chat
         set({ status: "streaming" });
         abort = api.chatStream(
           activeId,
           message,
           handleChatEvent(set, get),
-          handleError(set),
-          () => { },
-          !isPremiumMode // use_groq: true for basic (Groq), false for premium (OpenAI/GPT-4o)
+          handleError(set, get),
+          () => { }
         );
       }
 
@@ -162,13 +180,8 @@ const useChatbot = create((set, get) => ({
 
     } catch (error) {
       console.error("Error in sendMessage:", error);
+      get().playErrorResponse();
       set({ loading: false, status: "error" });
-      set((state) => ({
-        messages: [...state.messages, {
-          text: "Sorry, something went wrong. Please try again.",
-          sender: "bot"
-        }],
-      }));
     }
   },
 
@@ -187,9 +200,62 @@ const useChatbot = create((set, get) => ({
     });
   },
 
+  // Track the actual Audio object so we can stop it
   currentAudio: null,
   currentLipsync: null,
-  resetAudio: () => set({ currentAudio: null, currentLipsync: null }),
+
+  resetAudio: () => {
+    const { currentAudio } = get();
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+    set({ currentAudio: null, currentLipsync: null, isSpeaking: false });
+  },
+
+  playErrorResponse: () => {
+    const { currentAvatar, currentAudio } = get();
+
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
+    const errorMsg = ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)];
+    const audioSrc = currentAvatar === "female" ? errorMsg.female : errorMsg.male;
+
+    // Add message to chat
+    set((state) => ({
+      messages: [
+        ...state.messages,
+        {
+          text: errorMsg.text,
+          sender: "bot",
+        },
+      ],
+    }));
+
+    // Play audio and set speaking state
+    const audio = new Audio(audioSrc);
+
+    // Save the audio object to state
+    set({ currentAudio: audio, isSpeaking: true });
+
+    audio.onended = () => {
+      // Only update if this is still the current audio
+      if (get().currentAudio === audio) {
+        set({ isSpeaking: false, currentAudio: null });
+      }
+    };
+
+    audio.play().catch((e) => {
+      console.error("Failed to play error audio:", e);
+      if (get().currentAudio === audio) {
+        set({ isSpeaking: false, currentAudio: null });
+      }
+    });
+  },
 }));
 
 // Event handler for analyze endpoint (with images)
@@ -248,18 +314,13 @@ function handleAnalyzeEvent(set, get) {
 
       case "error":
         console.error("Analysis error:", data.error);
+        get().playErrorResponse();
         set({
           loading: false,
           status: "error",
           streamingText: "",
           progress: null,
         });
-        set((state) => ({
-          messages: [...state.messages, {
-            text: `Error: ${data.error}`,
-            sender: "bot"
-          }],
-        }));
         break;
     }
   };
@@ -307,33 +368,23 @@ function handleChatEvent(set, get) {
 
       case "error":
         console.error("Chat error:", data.error);
+        get().playErrorResponse();
         set({
           loading: false,
           status: "error",
           streamingText: "",
         });
-        set((state) => ({
-          messages: [...state.messages, {
-            text: `Error: ${data.error}`,
-            sender: "bot"
-          }],
-        }));
         break;
     }
   };
 }
 
 // Common error handler
-function handleError(set) {
+function handleError(set, get) {
   return (error) => {
     console.error("Stream error:", error);
+    get().playErrorResponse();
     set({ loading: false, status: "error" });
-    set((state) => ({
-      messages: [...state.messages, {
-        text: "Sorry, I encountered an error. Please try again.",
-        sender: "bot"
-      }],
-    }));
   };
 }
 

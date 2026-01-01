@@ -14,12 +14,11 @@
     "@react-three/postprocessing": "^3.0.4",
     "leva": "^0.10.1",
     "motion": "^12.23.26",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.11.0",
-    "three": "^0.173.0",
-    "wawa-lipsync": "^0.0.2",
+    "three": "^0.173.0",  
     "zustand": "^5.0.9"
   },
   "devDependencies": {

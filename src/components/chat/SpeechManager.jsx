@@ -11,20 +11,17 @@ export const SpeechManager = () => {
     const status = useChatbot((state) => state.status);
     const setIsSpeaking = useChatbot((state) => state.setIsSpeaking);
     const currentAvatar = useChatbot((state) => state.currentAvatar); // 'male' or 'female'
-    const isPremiumMode = useChatbot((state) => state.isPremiumMode);
 
     const lastLenRef = useRef(0);
     const audioQueueRef = useRef([]);
     const isPlayingRef = useRef(false);
     const bufferRef = useRef("");
     const currentAvatarRef = useRef(currentAvatar); // Track latest avatar for async calls
-    const isPremiumModeRef = useRef(isPremiumMode);
 
     // Keep ref in sync with state
     useEffect(() => {
         currentAvatarRef.current = currentAvatar;
-        isPremiumModeRef.current = isPremiumMode;
-    }, [currentAvatar, isPremiumMode]);
+    }, [currentAvatar]);
 
     // Smaller chunks for faster first audio
     const MIN_CHUNK_SIZE = 15;
@@ -95,8 +92,7 @@ export const SpeechManager = () => {
     const fetchAudio = async (text) => {
         // Use ref to get current avatar value (avoids stale closure)
         const voice = currentAvatarRef.current;
-        const provider = isPremiumModeRef.current ? "elevenlabs" : "groq";
-        const reader = await api.generateSpeech(text, voice, provider);
+        const reader = await api.generateSpeech(text, voice);
         const chunks = [];
         while (true) {
             const { done, value } = await reader.read();

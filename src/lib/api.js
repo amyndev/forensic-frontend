@@ -40,6 +40,7 @@ export async function updateConversation(id, data) {
 
 export async function deleteConversation(id) {
     const response = await fetch(`${API_BASE}/conversations/${id}`, { method: 'DELETE' });
+    if (response.status === 404) return; // Already deleted, consider success
     if (!response.ok) throw new Error('Failed to delete conversation');
 }
 
@@ -73,11 +74,11 @@ export async function deleteImage(imageId) {
 
 // ==================== Text-to-Speech ====================
 
-export async function generateSpeech(text, voice = 'male', provider = 'groq') {
+export async function generateSpeech(text, voice = 'male') {
     const response = await fetch(`${API_BASE}/tts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice, provider }),
+        body: JSON.stringify({ text, voice }),
     });
     if (!response.ok) throw new Error('Failed to generate speech');
 
@@ -89,13 +90,13 @@ export async function generateSpeech(text, voice = 'male', provider = 'groq') {
 
 /**
  * Start an analysis stream for the given conversation.
+ * Uses unified pipeline: YOLO + OCR + Groq LLM
  * 
  * @param {string} conversationId - The conversation ID
  * @param {string|null} context - Optional user context/message
  * @param {function} onEvent - Callback for each SSE event
  * @param {function} onError - Callback for errors
  * @param {function} onComplete - Callback when stream ends
- * @param {boolean} useBasicPipeline - Use YOLO+OCR+OpenAI (true) or GPT-4o Vision (false)
  * @returns {function} Abort function to cancel the stream
  */
 export function analyzeStream(
@@ -104,14 +105,14 @@ export function analyzeStream(
     onEvent = () => { },
     onError = () => { },
     onComplete = () => { },
-    useBasicPipeline = false
+    model = "local"
 ) {
     const url = `${API_BASE}/analyze/stream`;
 
     const body = JSON.stringify({
         conversation_id: conversationId,
         context: context || null,
-        use_basic_pipeline: useBasicPipeline,
+        model
     });
 
     const controller = new AbortController();
@@ -179,6 +180,7 @@ export function analyzeStream(
 
 /**
  * Start a chat stream for text-only conversation (no image analysis).
+ * Uses Groq LLM for responses.
  * 
  * @param {string} conversationId - The conversation ID
  * @param {string} message - The user message
@@ -192,12 +194,11 @@ export function chatStream(
     message,
     onEvent = () => { },
     onError = () => { },
-    onComplete = () => { },
-    use_groq = false
+    onComplete = () => { }
 ) {
     const url = `${API_BASE}/conversations/${conversation_id}/chat/stream`;
 
-    const body = JSON.stringify({ message, use_groq });
+    const body = JSON.stringify({ message });
 
     const controller = new AbortController();
 

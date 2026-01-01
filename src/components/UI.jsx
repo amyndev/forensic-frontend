@@ -13,8 +13,6 @@ export const UI = () => {
   const streamingText = useChatbot((state) => state.streamingText);
   const status = useChatbot((state) => state.status);
   const progress = useChatbot((state) => state.progress);
-  const isPremiumMode = useChatbot((state) => state.isPremiumMode);
-  const togglePremiumMode = useChatbot((state) => state.togglePremiumMode);
 
   const scrollRef = useRef(null);
 
